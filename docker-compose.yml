@@ -1,0 +1,36 @@
+version: '3.4'
+
+services:
+  db:
+    image: mysql/mysql-server:5.7 # Dockerfileを使わず、使用するイメージを直接指定
+    environment: # 起動時の環境変数
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      MYSQL_DATABASE: test
+    volumes:
+      - "db-data:/var/lib/mysql" # DBデータの永続化
+      - "./docker/mysql/my.conf:/etc/mysql/my.conf" # 初期設定を読み込む
+      - "./docker/mysql/init/:/docker-entrypoint-initdb.d" # MySQL起動時にDBを作成する
+
+  app:
+    build:
+        context: .
+        args: # ビルド時の環境変数
+          GOOS: linux
+          GOARCH: amd64
+    depends_on:
+      - db
+
+  proxy:
+    image: nginx:alpine # Dockerfileを使わず、使用するイメージを直接指定
+    ports:
+      - 80:80
+    volumes:
+      -  ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+volumes:
+  db-data: # ここで作成したボリュームがDBで使用されることによってデータが永続化される
+    driver: local
